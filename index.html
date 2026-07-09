@@ -386,6 +386,45 @@
     font-size:14px;
     color:#1c1a14;
   }
+  .delivery-toggle{display:flex; gap:8px;}
+  .delivery-btn{
+    flex:1;
+    border:1px solid #b8ac88;
+    background:#fbf7ec;
+    border-radius:10px;
+    padding:10px 6px;
+    font-family:'Work Sans',sans-serif;
+    font-size:12.5px;
+    color:#4a4534;
+    cursor:pointer;
+    line-height:1.5;
+    text-align:center;
+  }
+  .delivery-btn .d-sub{font-size:11px; color:#8a8168;}
+  .delivery-btn .tag-free{color:#1f7a3d; font-weight:700; font-family:'JetBrains Mono',monospace; font-size:11.5px;}
+  .delivery-btn .tag-charge{color:#b5461f; font-weight:700; font-family:'JetBrains Mono',monospace; font-size:11.5px;}
+  .delivery-btn.active{
+    border-color:var(--amber-deep);
+    background:#fff3df;
+    color:#1c1a14;
+    box-shadow:0 0 0 1px var(--amber-deep) inset;
+  }
+  .sum-row{
+    display:flex; justify-content:space-between;
+    font-family:'JetBrains Mono',monospace;
+    font-size:13px;
+    color:#5c5540;
+    padding:4px 0;
+  }
+  .total-row{
+    display:flex; justify-content:space-between; align-items:center;
+    padding:12px 0 2px;
+    margin-top:4px;
+    border-top:1px solid #cfc4a2;
+    font-family:'JetBrains Mono',monospace;
+    font-size:20px;
+    font-weight:700;
+  }
   .barcode{
     height:36px;
     margin:14px 0 4px;
@@ -492,12 +531,20 @@
         <label>ROOM / TABLE / ADDRESS</label>
         <input type="text" id="cust-room" placeholder="রুম নং / টেবিল / ঠিকানা">
       </div>
+      <div class="field">
+        <label>DELIVERY METHOD</label>
+        <div class="delivery-toggle">
+          <button type="button" class="delivery-btn active" id="delivery-pickup" onclick="setDelivery('pickup')">
+            📍 Pickup<br><span class="d-sub">Mission More</span><br><span class="tag-free">FREE</span>
+          </button>
+          <button type="button" class="delivery-btn" id="delivery-home" onclick="setDelivery('home')">
+            🛵 Home Delivery<br><span class="d-sub">to your address</span><br><span class="tag-charge">+20 tk</span>
+          </button>
+        </div>
+      </div>
       <div class="perforation"></div>
       <div class="cart-items" id="cart-items"></div>
-      <div class="total-row">
-        <span>TOTAL</span>
-        <span id="cart-total" class="mono">0 tk</span>
-      </div>
+      <div id="cart-summary"></div>
       <div class="barcode"></div>
       <button class="confirm-btn" id="confirm-btn" onclick="confirmOrder()" disabled>
         Confirm via WhatsApp ✅
@@ -527,6 +574,15 @@ const fuelItems = [
 ];
 
 const state = {}; // id -> {qty, variantIndex, price, name}
+const DELIVERY_CHARGES = { pickup: 0, home: 20 };
+let deliveryMethod = 'pickup';
+
+function setDelivery(method){
+  deliveryMethod = method;
+  document.getElementById('delivery-pickup').classList.toggle('active', method==='pickup');
+  document.getElementById('delivery-home').classList.toggle('active', method==='home');
+  renderCart();
+}
 
 function money(n){ return n + ' tk'; }
 
@@ -633,17 +689,18 @@ function updateFab(){
 
 function renderCart(){
   const container = document.getElementById('cart-items');
+  const summary = document.getElementById('cart-summary');
   const entries = Object.entries(state).filter(([_,v])=>v.qty>0);
   if(entries.length===0){
     container.innerHTML = `<div class="empty-note">এখনো কিছু যোগ করা হয়নি ✈️</div>`;
-    document.getElementById('cart-total').textContent = '0 tk';
+    summary.innerHTML = '';
     document.getElementById('confirm-btn').disabled = true;
     return;
   }
-  let total = 0;
+  let itemsTotal = 0;
   container.innerHTML = entries.map(([id,v])=>{
     const subtotal = v.qty * v.unitPrice;
-    total += subtotal;
+    itemsTotal += subtotal;
     return `
     <div class="cart-line">
       <div>
@@ -653,7 +710,16 @@ function renderCart(){
       <div class="amt">${subtotal} tk</div>
     </div>`;
   }).join('');
-  document.getElementById('cart-total').textContent = money(total);
+
+  const deliveryCharge = DELIVERY_CHARGES[deliveryMethod];
+  const grandTotal = itemsTotal + deliveryCharge;
+  const deliveryLabel = deliveryMethod === 'pickup' ? 'Pickup — Mission More (Free)' : 'Home Delivery';
+
+  summary.innerHTML = `
+    <div class="sum-row"><span>Subtotal</span><span>${itemsTotal} tk</span></div>
+    <div class="sum-row"><span>${deliveryLabel}</span><span>${deliveryCharge===0 ? 'Free' : '+'+deliveryCharge+' tk'}</span></div>
+    <div class="total-row"><span>TOTAL</span><span class="mono">${grandTotal} tk</span></div>
+  `;
   document.getElementById('confirm-btn').disabled = false;
 }
 
@@ -674,17 +740,23 @@ function confirmOrder(){
   if(entries.length===0) return;
   const name = document.getElementById('cust-name').value.trim();
   const room = document.getElementById('cust-room').value.trim();
-  let total = 0;
+  let itemsTotal = 0;
   let lines = entries.map(([id,v])=>{
     const subtotal = v.qty*v.unitPrice;
-    total += subtotal;
+    itemsTotal += subtotal;
     return `${v.qty}x ${v.name}${v.variantLabel ? ' ('+v.variantLabel+')' : ''} — ${subtotal}tk`;
   });
+  const deliveryCharge = DELIVERY_CHARGES[deliveryMethod];
+  const grandTotal = itemsTotal + deliveryCharge;
+  const deliveryLabel = deliveryMethod === 'pickup' ? 'Pickup from Mission More (Free)' : 'Home Delivery (+20 tk)';
+
   let msg = `AEROBYTE অর্ডার (AB-${orderCode})\n`;
   msg += lines.join('\n');
-  msg += `\n---\nTotal: ${total} tk`;
+  msg += `\n---\nSubtotal: ${itemsTotal} tk`;
+  msg += `\nDelivery: ${deliveryLabel}`;
+  msg += `\nTotal: ${grandTotal} tk`;
   if(name) msg += `\nনাম: ${name}`;
-  if(room) msg += `\nরুম/টেবিল: ${room}`;
+  if(room) msg += `\nরুম/টেবিল/ঠিকানা: ${room}`;
   msg += `\n\nঅনুগ্রহ করে অর্ডার কনফার্ম করুন। ধন্যবাদ!`;
 
   const url = `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(msg)}`;
