@@ -597,7 +597,7 @@
       <div class="field hidden" id="bkash-field">
         <div class="bkash-box">
           <div class="bkash-number">01885362327</div>
-          <div class="bkash-hint">bKash Personal নাম্বারে <b>Send Money with cashout charge</b> করুন (Payment/Cash Out নয়)</div>
+          <div class="bkash-hint">bKash Personal নাম্বারে <b>Send Money(with cashout charge)</b> করুন (Payment/Cash Out নয়)</div>
         </div>
         <label style="margin-top:10px;">bKash TRANSACTION ID (ঐচ্ছিক)</label>
         <input type="text" id="bkash-trx" placeholder="যেমন 8N7A2XXXXX">
@@ -858,7 +858,7 @@ function confirmOrder(){
   const grandTotal = itemsTotal + deliveryCharge;
   const deliveryLabel = deliveryMethod === 'pickup' ? 'Pickup from Mission More (Free)' : 'Home Delivery (+20 tk)';
   const trxId = document.getElementById('bkash-trx').value.trim();
-  const paymentLabel = paymentMethod === 'bkash' ? 'bKash (01770653760)' : 'Cash on Delivery';
+  const paymentLabel = paymentMethod === 'bkash' ? 'bKash (01885362327)' : 'Cash on Delivery';
 
   let msg = `AEROBYTE অর্ডার (AB-${orderCode})\n`;
   msg += lines.join('\n');
