@@ -108,6 +108,15 @@
     border-color:var(--amber);
     color:var(--amber);
   }
+  nav.pills a.fb-pill{
+    border-color:#1877F2;
+    color:#8fb8fb;
+  }
+  nav.pills a.fb-pill:hover, nav.pills a.fb-pill:focus-visible{
+    background:#1877F2;
+    color:#fff;
+    border-color:#1877F2;
+  }
 
   section{max-width:920px; margin:0 auto; padding:50px 18px;}
   .section-head{display:flex; align-items:baseline; gap:14px; margin-bottom:26px;}
@@ -425,6 +434,34 @@
     font-size:20px;
     font-weight:700;
   }
+  #room-field.hidden{display:none;}
+  #bkash-field.hidden{display:none;}
+  .bkash-box{
+    background:#e0116f0d;
+    border:1px solid #e0116f55;
+    border-radius:10px;
+    padding:12px;
+    text-align:center;
+  }
+  .bkash-number{
+    font-family:'JetBrains Mono',monospace;
+    font-size:20px;
+    font-weight:700;
+    color:#e0116f;
+    letter-spacing:1px;
+  }
+  .bkash-hint{
+    font-size:12px;
+    color:#6b5a3a;
+    margin-top:4px;
+  }
+  .field-note{
+    font-size:12px;
+    color:#b5461f;
+    font-family:'JetBrains Mono',monospace;
+    margin:-4px 0 10px;
+    min-height:16px;
+  }
   .barcode{
     height:36px;
     margin:14px 0 4px;
@@ -473,6 +510,7 @@
     <a href="#menu">মেনু / Menu</a>
     <a href="#fuel">Fuel Pack</a>
     <a href="#order-help">অর্ডার নিয়ম</a>
+    <a href="https://www.facebook.com/share/1BjCeVRbUH/" target="_blank" rel="noopener" class="fb-pill">📘 Facebook</a>
   </nav>
 </header>
 
@@ -506,6 +544,9 @@
 <footer>
   <div class="good">Good Food · Good Mood</div>
   <div class="contact">📞 For order: +880 1301-124936 (WhatsApp)</div>
+  <div class="contact" style="margin-top:8px;">
+    <a href="https://www.facebook.com/share/1BjCeVRbUH/" target="_blank" rel="noopener" style="color:#8fb8fb; text-decoration:none;">📘 Follow us on Facebook</a>
+  </div>
 </footer>
 
 <button class="fab" id="fab" hidden onclick="openCart()">
@@ -524,14 +565,6 @@
         <div class="pass-row">TO<b id="pass-to">YOUR TABLE</b></div>
       </div>
       <div class="field">
-        <label>PASSENGER NAME</label>
-        <input type="text" id="cust-name" placeholder="আপনার নাম">
-      </div>
-      <div class="field">
-        <label>ROOM / TABLE / ADDRESS</label>
-        <input type="text" id="cust-room" placeholder="রুম নং / টেবিল / ঠিকানা">
-      </div>
-      <div class="field">
         <label>DELIVERY METHOD</label>
         <div class="delivery-toggle">
           <button type="button" class="delivery-btn active" id="delivery-pickup" onclick="setDelivery('pickup')">
@@ -542,6 +575,34 @@
           </button>
         </div>
       </div>
+      <div class="field">
+        <label>PASSENGER NAME *</label>
+        <input type="text" id="cust-name" placeholder="আপনার নাম (আবশ্যক)" oninput="validateFields()">
+      </div>
+      <div class="field hidden" id="room-field">
+        <label>DELIVERY ADDRESS *</label>
+        <input type="text" id="cust-room" placeholder="বাসা/রুম নং, রাস্তা, এলাকা (আবশ্যক)" oninput="validateFields()">
+      </div>
+      <div class="field">
+        <label>PAYMENT METHOD</label>
+        <div class="delivery-toggle">
+          <button type="button" class="delivery-btn active" id="pay-cod" onclick="setPayment('cod')">
+            💵 Cash<br><span class="d-sub">on Delivery</span>
+          </button>
+          <button type="button" class="delivery-btn" id="pay-bkash" onclick="setPayment('bkash')">
+            📱 bKash<br><span class="d-sub">Send Money</span>
+          </button>
+        </div>
+      </div>
+      <div class="field hidden" id="bkash-field">
+        <div class="bkash-box">
+          <div class="bkash-number">01770653760</div>
+          <div class="bkash-hint">bKash Personal নাম্বারে <b>Send Money</b> করুন (Payment/Cash Out নয়)</div>
+        </div>
+        <label style="margin-top:10px;">bKash TRANSACTION ID (ঐচ্ছিক)</label>
+        <input type="text" id="bkash-trx" placeholder="যেমন 8N7A2XXXXX">
+      </div>
+      <div class="field-note" id="field-note"></div>
       <div class="perforation"></div>
       <div class="cart-items" id="cart-items"></div>
       <div id="cart-summary"></div>
@@ -576,12 +637,56 @@ const fuelItems = [
 const state = {}; // id -> {qty, variantIndex, price, name}
 const DELIVERY_CHARGES = { pickup: 0, home: 20 };
 let deliveryMethod = 'pickup';
+let paymentMethod = 'cod';
+
+function setPayment(method){
+  paymentMethod = method;
+  document.getElementById('pay-cod').classList.toggle('active', method==='cod');
+  document.getElementById('pay-bkash').classList.toggle('active', method==='bkash');
+  document.getElementById('bkash-field').classList.toggle('hidden', method!=='bkash');
+}
 
 function setDelivery(method){
   deliveryMethod = method;
   document.getElementById('delivery-pickup').classList.toggle('active', method==='pickup');
   document.getElementById('delivery-home').classList.toggle('active', method==='home');
+  const roomField = document.getElementById('room-field');
+  const roomInput = document.getElementById('cust-room');
+  if(method === 'pickup'){
+    roomField.classList.add('hidden');
+    roomInput.value = '';
+  } else {
+    roomField.classList.remove('hidden');
+  }
   renderCart();
+  validateFields();
+}
+
+let cartHasItems = false;
+
+function validateFields(){
+  const name = document.getElementById('cust-name').value.trim();
+  const room = document.getElementById('cust-room').value.trim();
+  const note = document.getElementById('field-note');
+  const btn = document.getElementById('confirm-btn');
+
+  let missing = [];
+  if(!name) missing.push('নাম');
+  if(deliveryMethod === 'home' && !room) missing.push('ঠিকানা');
+
+  if(!cartHasItems){
+    note.textContent = '';
+    btn.disabled = true;
+    return;
+  }
+
+  if(missing.length){
+    note.textContent = '* ' + missing.join(' ও ') + ' লিখুন';
+    btn.disabled = true;
+  } else {
+    note.textContent = '';
+    btn.disabled = false;
+  }
 }
 
 function money(n){ return n + ' tk'; }
@@ -691,10 +796,11 @@ function renderCart(){
   const container = document.getElementById('cart-items');
   const summary = document.getElementById('cart-summary');
   const entries = Object.entries(state).filter(([_,v])=>v.qty>0);
+  cartHasItems = entries.length > 0;
   if(entries.length===0){
     container.innerHTML = `<div class="empty-note">এখনো কিছু যোগ করা হয়নি ✈️</div>`;
     summary.innerHTML = '';
-    document.getElementById('confirm-btn').disabled = true;
+    validateFields();
     return;
   }
   let itemsTotal = 0;
@@ -720,7 +826,7 @@ function renderCart(){
     <div class="sum-row"><span>${deliveryLabel}</span><span>${deliveryCharge===0 ? 'Free' : '+'+deliveryCharge+' tk'}</span></div>
     <div class="total-row"><span>TOTAL</span><span class="mono">${grandTotal} tk</span></div>
   `;
-  document.getElementById('confirm-btn').disabled = false;
+  validateFields();
 }
 
 let orderCode = Math.floor(1000 + Math.random()*8999);
@@ -740,6 +846,8 @@ function confirmOrder(){
   if(entries.length===0) return;
   const name = document.getElementById('cust-name').value.trim();
   const room = document.getElementById('cust-room').value.trim();
+  if(!name){ document.getElementById('cust-name').focus(); return; }
+  if(deliveryMethod === 'home' && !room){ document.getElementById('cust-room').focus(); return; }
   let itemsTotal = 0;
   let lines = entries.map(([id,v])=>{
     const subtotal = v.qty*v.unitPrice;
@@ -749,12 +857,16 @@ function confirmOrder(){
   const deliveryCharge = DELIVERY_CHARGES[deliveryMethod];
   const grandTotal = itemsTotal + deliveryCharge;
   const deliveryLabel = deliveryMethod === 'pickup' ? 'Pickup from Mission More (Free)' : 'Home Delivery (+20 tk)';
+  const trxId = document.getElementById('bkash-trx').value.trim();
+  const paymentLabel = paymentMethod === 'bkash' ? 'bKash (01770653760)' : 'Cash on Delivery';
 
   let msg = `AEROBYTE অর্ডার (AB-${orderCode})\n`;
   msg += lines.join('\n');
   msg += `\n---\nSubtotal: ${itemsTotal} tk`;
   msg += `\nDelivery: ${deliveryLabel}`;
   msg += `\nTotal: ${grandTotal} tk`;
+  msg += `\nPayment: ${paymentLabel}`;
+  if(paymentMethod === 'bkash' && trxId) msg += `\nTrxID: ${trxId}`;
   if(name) msg += `\nনাম: ${name}`;
   if(room) msg += `\nরুম/টেবিল/ঠিকানা: ${room}`;
   msg += `\n\nঅনুগ্রহ করে অর্ডার কনফার্ম করুন। ধন্যবাদ!`;
