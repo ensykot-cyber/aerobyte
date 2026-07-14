@@ -570,11 +570,9 @@
           <button type="button" class="delivery-btn active" id="delivery-pickup" onclick="setDelivery('pickup')">
             📍 Pickup<br><span class="d-sub">Mission More</span><br><span class="tag-free">FREE</span>
           </button>
-          <button type="button" class="delivery-btn" id="delivery-home">
-  🛵 Home Delivery<br>
-  <span class="d-sub">to your address</span><br>
-  <span class="tag-charge" id="delivery-charge-label">+20 tk</span>
-</button>
+          <button type="button" class="delivery-btn" id="delivery-home" onclick="setDelivery('home')">
+            🛵 Home Delivery<br><span class="d-sub">to your address</span><br><span class="tag-charge">+20 tk</span>
+          </button>
         </div>
       </div>
       <div class="field">
@@ -598,8 +596,8 @@
       </div>
       <div class="field hidden" id="bkash-field">
         <div class="bkash-box">
-          <div class="bkash-number">01885362327</div>
-          <div class="bkash-hint">bKash Personal নাম্বারে <b>Send Money(with cashout charge)</b> করুন (Payment/Cash Out নয়).Also add your name in Reference.</div>
+          <div class="bkash-number">01770653760</div>
+          <div class="bkash-hint">bKash Personal নাম্বারে <b>Send Money</b> করুন (Payment/Cash Out নয়)</div>
         </div>
         <label style="margin-top:10px;">bKash TRANSACTION ID (ঐচ্ছিক)</label>
         <input type="text" id="bkash-trx" placeholder="যেমন 8N7A2XXXXX">
@@ -795,16 +793,16 @@ function updateFab(){
 }
 
 function renderCart(){
-  const chargeLabel = document.getElementById('delivery-charge-label');
-
-if (chargeLabel) {
-  if (deliveryMethod === 'home') {
-    chargeLabel.textContent = totalQty > 1 ? '+30 tk' : '+20 tk';
-  } else {
-    chargeLabel.textContent = '+20 tk';
+  const container = document.getElementById('cart-items');
+  const summary = document.getElementById('cart-summary');
+  const entries = Object.entries(state).filter(([_,v])=>v.qty>0);
+  cartHasItems = entries.length > 0;
+  if(entries.length===0){
+    container.innerHTML = `<div class="empty-note">এখনো কিছু যোগ করা হয়নি ✈️</div>`;
+    summary.innerHTML = '';
+    validateFields();
+    return;
   }
-}
-
   let itemsTotal = 0;
   container.innerHTML = entries.map(([id,v])=>{
     const subtotal = v.qty * v.unitPrice;
@@ -819,9 +817,11 @@ if (chargeLabel) {
     </div>`;
   }).join('');
 
-  const deliveryCharge = DELIVERY_CHARGES[deliveryMethod];
+  const totalQty = entries.reduce((a,[_,v])=>a+v.qty,0);
+  const isMulti = deliveryMethod === 'home' && totalQty > 1;
+  const deliveryCharge = deliveryMethod === 'pickup' ? 0 : (isMulti ? 30 : 20);
   const grandTotal = itemsTotal + deliveryCharge;
-  const deliveryLabel = deliveryMethod === 'pickup' ? 'Pickup — Mission More (Free)' : 'Home Delivery';
+  const deliveryLabel = deliveryMethod === 'pickup' ? 'Pickup — Mission More (Free)' : (isMulti ? 'Home Delivery (multi-item)' : 'Home Delivery');
 
   summary.innerHTML = `
     <div class="sum-row"><span>Subtotal</span><span>${itemsTotal} tk</span></div>
@@ -856,11 +856,13 @@ function confirmOrder(){
     itemsTotal += subtotal;
     return `${v.qty}x ${v.name}${v.variantLabel ? ' ('+v.variantLabel+')' : ''} — ${subtotal}tk`;
   });
-  const deliveryCharge = DELIVERY_CHARGES[deliveryMethod];
+  const totalQty = entries.reduce((a,[_,v])=>a+v.qty,0);
+  const isMulti = deliveryMethod === 'home' && totalQty > 1;
+  const deliveryCharge = deliveryMethod === 'pickup' ? 0 : (isMulti ? 30 : 20);
   const grandTotal = itemsTotal + deliveryCharge;
-  const deliveryLabel = deliveryMethod === 'pickup' ? 'Pickup from Mission More (Free)' : 'Home Delivery (+20 tk)';
+  const deliveryLabel = deliveryMethod === 'pickup' ? 'Pickup from Mission More (Free)' : `Home Delivery (+${deliveryCharge} tk)`;
   const trxId = document.getElementById('bkash-trx').value.trim();
-  const paymentLabel = paymentMethod === 'bkash' ? 'bKash (01885362327)' : 'Cash on Delivery';
+  const paymentLabel = paymentMethod === 'bkash' ? 'bKash (01770653760)' : 'Cash on Delivery';
 
   let msg = `AEROBYTE অর্ডার (AB-${orderCode})\n`;
   msg += lines.join('\n');
