@@ -804,16 +804,7 @@ if (chargeLabel) {
     chargeLabel.textContent = '+20 tk';
   }
 }
-  const container = document.getElementById('cart-items');
-  const summary = document.getElementById('cart-summary');
-  const entries = Object.entries(state).filter(([_,v])=>v.qty>0);
-  cartHasItems = entries.length > 0;
-  if(entries.length===0){
-    container.innerHTML = `<div class="empty-note">এখনো কিছু যোগ করা হয়নি ✈️</div>`;
-    summary.innerHTML = '';
-    validateFields();
-    return;
-  }
+
   let itemsTotal = 0;
   container.innerHTML = entries.map(([id,v])=>{
     const subtotal = v.qty * v.unitPrice;
