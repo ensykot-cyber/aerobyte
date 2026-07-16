@@ -571,8 +571,7 @@
             📍 Pickup<br><span class="d-sub">Mission More</span><br><span class="tag-free">FREE</span>
           </button>
           <button type="button" class="delivery-btn" id="delivery-home" onclick="setDelivery('home')">
-            🛵 Home Delivery<br><span class="d-sub">to your address</span><br><span class="tag-charge">+20 tk</span>
-            <br>(For multiple item the charge will be 30 tk)
+            🛵 Home Delivery<br><span class="d-sub">to your address</span><br><span class="tag-charge">+20 tk for a single order and for Multiple items,20 taka for the first items and an additional 10 taka for eatch subsequent item.</span>
           </button>
         </div>
       </div>
@@ -820,7 +819,7 @@ function renderCart(){
 
   const totalQty = entries.reduce((a,[_,v])=>a+v.qty,0);
   const isMulti = deliveryMethod === 'home' && totalQty > 1;
-  const deliveryCharge = deliveryMethod === 'pickup' ? 0 : (isMulti ? 30 : 20);
+  const deliveryCharge = deliveryMethod === 'pickup' ? 0 : (totalQty > 0 ? 20 + (totalQty-1)*10 : 20);
   const grandTotal = itemsTotal + deliveryCharge;
   const deliveryLabel = deliveryMethod === 'pickup' ? 'Pickup — Mission More (Free)' : (isMulti ? 'Home Delivery (multi-item)' : 'Home Delivery');
 
@@ -858,8 +857,7 @@ function confirmOrder(){
     return `${v.qty}x ${v.name}${v.variantLabel ? ' ('+v.variantLabel+')' : ''} — ${subtotal}tk`;
   });
   const totalQty = entries.reduce((a,[_,v])=>a+v.qty,0);
-  const isMulti = deliveryMethod === 'home' && totalQty > 1;
-  const deliveryCharge = deliveryMethod === 'pickup' ? 0 : (isMulti ? 30 : 20);
+  const deliveryCharge = deliveryMethod === 'pickup' ? 0 : (totalQty > 0 ? 20 + (totalQty-1)*10 : 20);
   const grandTotal = itemsTotal + deliveryCharge;
   const deliveryLabel = deliveryMethod === 'pickup' ? 'Pickup from Mission More (Free)' : `Home Delivery (+${deliveryCharge} tk)`;
   const trxId = document.getElementById('bkash-trx').value.trim();
